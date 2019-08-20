@@ -2,6 +2,7 @@
 ###################### Imports ###########################
 import pytesseract as pt
 import numpy as np
+from pytesseract import Output
 import cv2
 
 
@@ -12,7 +13,7 @@ import cv2
 
 
 ###################### Functions ###########################
-pt.pytesseract.tesseract_cmd = '/cs/usr/punims/Desktop/tesseract-ocr-setup-3.02.02/tesseract.exe'
+pt.pytesseract.tesseract_cmd = 'C:\\Users\\Chaim\\AppData\\Local\\Tesseract-OCR\\tesseract.exe'
 
 def mark_words(original_image, word_list, word):
     """
@@ -22,17 +23,21 @@ def mark_words(original_image, word_list, word):
     :param word: the word needed to be marked within the list.
     :return: augmented image with marked bounding boxes around the word
     """
-    filename = t3qWG.png
+    filename = 't3qWG.png'
 
     img = cv2.imread(filename)
-    h, w = img.shape
-
-    boxes = pt.image_to_boxes(img)
+    d = pt.image_to_data(img, output_type=Output.DICT)
+    n_boxes = len(d['level'])
     print(pt.image_to_string(img))
 
-    for b in boxes:
-        b = b.split()
-        cv2.rectangle(img, ((int(b[1]), h - int(b[2]))), ((int(b[3]), h - int(b[4]))), (0, 255, 0), 2)
+
+    for i in range(n_boxes):
+        (x, y, w, h) = (
+        d['left'][i], d['top'][i], d['width'][i], d['height'][i])
+        cv2.rectangle(img, (x, y), (x + w, y + h), (0, 255, 0), 2)
+    cv2.imshow('image', img)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
     return
 
 def calculate_bounding_box():
