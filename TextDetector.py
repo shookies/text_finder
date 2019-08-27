@@ -25,8 +25,9 @@ def load_and_resize_image(im_path, newHeight, newWidth):
     image = cv2.imread(im_path)
     original = image.copy()
     (height, width) = image.shape[:2]
-    ratio_width, ratio_height = width / float(newWidth), height / float(newHeight)    #calculates ratio for later use
-    ratio = (ratio_width, ratio_height)
+    ratio_width = width / float(newWidth)        #calculates ratio for later use
+    ratio_height = height / float(newHeight)
+    ratio = (ratio_width, ratio_height)     #TODO change order?
 
     image = cv2.resize(image, (newWidth, newHeight))
     return [image, ratio, original]
@@ -34,7 +35,7 @@ def load_and_resize_image(im_path, newHeight, newWidth):
 def detect(east_path, image, minConfidence):
 
     model = cv2.dnn.readNet(east_path)
-    width, height = image.shape[:2]
+    height, width = image.shape[:2]
 
     blob = cv2.dnn.blobFromImage(image, scalefactor= 1.0, size= (width,height), mean= (123.68,116.78, 103.94),
                                  swapRB= True, crop= False)     #preprocess the image for detection
@@ -56,6 +57,8 @@ def decode(scores, geometry, minConfidence):
     rects = []
     confidences = []
 
+
+
     for y in range(0, numRows):
         scoresData = scores[0,0,y]
         xData0 = geometry[0,0,y]    #h_upper from offset
@@ -73,24 +76,35 @@ def decode(scores, geometry, minConfidence):
             cos, sin = np.cos(angle), np.sin(angle)
             h = xData0[x] + xData2[x]
             w = xData1[x] + xData3[x]
-            endX = int(offsetX + (cos * xData1[x]) + (sin * xData2[x]))
-            endY = int(offsetY - (sin * xData1[x]) + (cos * xData2[x]))
-            startX = int(endX - w)
-            startY = int(endY - h)
+            # endX = int(offsetX + (cos * xData1[x]) + (sin * xData2[x]))
+            # endY = int(offsetY - (sin * xData1[x]) + (cos * xData2[x]))
+            # startX = int(endX - w)
+            # startY = int(endY - h)
+            offsetX = offsetX + cos * xData1[x] + sin * xData2[x]
+            offsetY = offsetY - sin * xData1[x] + cos * xData2[x]
 
-            rects.append((startX, startY, endX, endY))
+            # calculate the UL and LR corners of the bounding rectangle
+            p1x = -cos * w + offsetX
+            p1y = -cos * h + offsetY
+            p3x = -sin * h + offsetX
+            p3y = sin * w + offsetY
+
+            # add the bounding box coordinates
+            rects.append((p1x, p1y, p3x, p3y))
+
+            # rects.append((startX, startY, endX, endY))
             confidences.append(scoresData[x])
 
     return [rects, confidences]
 
 def show_boxes_and_image(image, boxes, ratio):
 
-    for (sX, sY, eX, eY) in boxes:
+    for (sY, sX, eY, eX) in boxes:
         sX = int(sX* ratio[0])
         sY = int(sY * ratio[1])
         eX = int(eX * ratio[0])
         eY = int(eY * ratio[1])
-        cv2.rectangle(image, (sX, sY), (eX,eY), (255,30,30), 2)
+        cv2.rectangle(image, (sY, sX), (eY  ,eX), color=(100,30,200), thickness=1)  #TODO padding?
 
     cv2.imshow("meow",image)
     cv2.waitKey(0)
@@ -107,16 +121,28 @@ def show_boxes_and_image(image, boxes, ratio):
     #                                                                    "multiple of 32")
 
 
-# args = parse_arguments()
-#-i /cs/usr/shookies/Desktop/text_finder/test_im.png -east /cs/usr/shookies/Desktop/text_finder/east_text_detection.pb -w 608 -h 288
-east_path = "/cs/usr/shookies/Desktop/text_finder/east_text_detection.pb"
-im_path = "/cs/usr/shookies/Desktop/text_finder/stop_sign.jpg"
-h = 320
-w = 672
-print("meowwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww")
-image, ratio, orig = load_and_resize_image(im_path, h, w)
-boxes = detect(east_path, image, 0.5)
-show_boxes_and_image(image, boxes, ratio)
-# cv2.imshow("meow", im)
-# cv2.waitKey(0)
-# cv2.destroyAllWindows()
+def main():
+    # args = parse_arguments()
+    #-i /cs/usr/shookies/Desktop/text_finder/test_im.png -east /cs/usr/shookies/Desktop/text_finder/east_text_detection.pb -w 608 -h 288
+    east_path = "/cs/usr/shookies/Desktop/text_finder/east_text_detection.pb"
+    # im_path = "/cs/usr/shookies/Desktop/text_finder/test2.png"
+    # h = 256
+    # w = 512
+    im_path = "/cs/usr/shookies/Desktop/text_finder/stop_sign.jpg"
+    h = 320
+    w = 671
+    # im_path = "/cs/usr/shookies/Desktop/text_finder/lines.png"
+    # h = 352
+    # w = 832
+    # print("meowwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww")
+    image, ratio, orig = load_and_resize_image(im_path, h, w)
+    # image = cv2.imread(im_path)
+    # ratio = (1,1)
+    boxes = detect(east_path, image, 0.9)
+    show_boxes_and_image(image, boxes, ratio)
+    # cv2.imshow("meow", im)
+    # cv2.waitKey(0)
+    # cv2.destroyAllWindows()
+    return 0
+
+main()
