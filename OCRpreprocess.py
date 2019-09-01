@@ -34,12 +34,12 @@ def preprocess_images(file_path, new_file_path):
     :param new_file_path:
     :return:
     """
-    if not os.path.isdir(new_file_path)
+    if not os.path.isdir(new_file_path):
         os.mkdir(new_file_path)
     i = 0
     for dir in listdir(file_path):
         j = 0
-        for image_path in listdir(file_path + '/' + dir)
+        for image_path in listdir(file_path + '/' + dir):
             image = open_image(image_path)
             cv2.imwrite(file_path + '/' + image_path + '/' str(i) + '/' +str(i) + '.jpg', image)
             j += 1
