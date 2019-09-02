@@ -40,7 +40,6 @@ def extractHogFeatures(path):
 
 
     feature_list = []
-    start = time.clock()
     label_list = [file for file in path]
     if os.path.isdir(path):
         for subdir, dirs, files in os.walk(path):
@@ -54,8 +53,6 @@ def extractHogFeatures(path):
                     h = hog.compute(im)
                     letter_list.append(h)
             feature_list.append(letter_list)
-    finish = time.clock()
-    print("time to finish was: " + str(finish-start))
     return (feature_list, label_list)
 
 
