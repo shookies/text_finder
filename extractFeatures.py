@@ -18,7 +18,7 @@ import time
 ###################### Constants ###########################
 samples=[]
 winSize = (32,32)
-blockSize = (16,16)
+blockSize = (8,8)
 blockStride = (8,8)
 cellSize = (8,8)
 nbins = 9
@@ -40,9 +40,12 @@ def extractHogFeatures(path):
 
 
     feature_list = []
-    label_list = [file for file in path]
+    label_list = os.listdir(path)
     if os.path.isdir(path):
+        i = 0
         for subdir, dirs, files in os.walk(path):
+            if i >= 3: continue
+            i += 1
             letter_list = []
             for image in files:
                 if str(image).endswith('.jpg'):
@@ -52,8 +55,8 @@ def extractHogFeatures(path):
                     im = cv2.imread(pathname)
                     h = hog.compute(im)
                     letter_list.append(h)
-            feature_list.append(letter_list)
-    return (feature_list, label_list)
+            if letter_list: # checks if list is empty
+                feature_list.append(letter_list)
+    return feature_list, label_list
 
 
-extractHogFeatures('/cs/usr/punims/Desktop/OCRProject/Preprocessed_Images')
