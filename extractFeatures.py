@@ -6,7 +6,7 @@ saves vectors for later use.
 
 
 ###################### Imports ###########################
-import numpy
+import numpy as np
 import cv2
 import os
 import string
@@ -40,23 +40,31 @@ def extractHogFeatures(path):
 
 
     feature_list = []
-    label_list = os.listdir(path)
+    label_list = []
+    labels = os.listdir(path)
     if os.path.isdir(path):
-        i = 0
+        # i = 0  #TODO delete this
+        cur_letter = -1  #done for this specific file where it is saved.
         for subdir, dirs, files in os.walk(path):
-            if i >= 3: continue
-            i += 1
+            if len(files) == 0:
+                continue
+            # if i >= 3: continue #TODO delete this
+            # i += 1 #TODO delete this
+            cur_letter += 1
             letter_list = []
             for image in files:
+                label_list.append(labels[cur_letter])
                 if str(image).endswith('.jpg'):
                     pathname = subdir + os.sep + image # true pathname of the image
                     hog = cv2.HOGDescriptor(winSize,blockSize,blockStride,cellSize,nbins,derivAperture,winSigma,
                                             histogramNormType,L2HysThreshold,gammaCorrection,nlevels)
                     im = cv2.imread(pathname)
-                    h = hog.compute(im)
+                    h = np.array(hog.compute(im)).squeeze()
                     letter_list.append(h)
-            if letter_list: # checks if list is empty
-                feature_list.append(letter_list)
+            if len(feature_list) == 0: # checks if list is empty
+                feature_list = np.array(letter_list)
+            else:
+                feature_list = np.concatenate((feature_list, np.array(letter_list)))
     return feature_list, label_list
 
 

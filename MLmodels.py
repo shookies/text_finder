@@ -36,19 +36,12 @@ def KNN_model(path):
     """
 
     feature_list, labels = extractFeatures.extractHogFeatures(path)
-    features  = np.array(feature_list)
-    labels = np.array(labels)[0:2]
+    features = np.array(feature_list)
+    labels_ascii = list(map(ord, labels))  #turns string labels in to ascii integer values.
+    labels_ascii = np.array(labels_ascii)
 
-    # data must be reshaped:
-    features = features.reshape(1,) # should drop the single dimensions of features. should now be of 62X1024X144 array.
-    features = features.reshape(1, 16, 9)  # drops array from 2d to 1d.
-    new_labels = []
-    x = 0
-    for i in labels:
-        new_labels.extend([i for j in range(len(features[x]))])
-        x += 1
 
-    X_train, X_test, y_train, y_test = train_test_split(features, new_labels)
+    X_train, X_test, y_train, y_test = train_test_split(features, labels_ascii)
     knn = KNeighborsClassifier(n_neighbors=3)
     knn.fit(X_train, y_train)
 
