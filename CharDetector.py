@@ -35,6 +35,7 @@ def preprocess(im, dilation_kernel):
     #grayscale
     gray = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
 
+
     #binary
     _ , thresh = cv2.threshold(gray, 127,255,cv2.THRESH_BINARY_INV)
     cv2.imshow("binary", thresh)

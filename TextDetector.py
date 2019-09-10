@@ -83,8 +83,9 @@ def detect(east_path, image, minConfidence, nmsThresh, inputHeight, inputWidth, 
             cv2.line(image, p1, p2, (0, 255, 0), 2, cv2.LINE_AA)
         word_boxes.append(vertices)
 
-    for word in word_boxes:
+    for BB in word_boxes:
         # cv2.imshow("word", word)
+        word = image[BB[0]:BB[1], BB[2]:BB[3]]
         chars = CharDetector.detect_chars(word.astype('uint8'),dilation_kernel)
         char_boxes.append(chars)
         for char in chars:
