@@ -18,6 +18,7 @@ from sklearn.externals import joblib
 
 ###################### Constants ###########################
 pathname = '/cs/usr/punims/Desktop/OCRProject/Preprocessed_Images'
+saved_models_path = '/cs/usr/punims/Desktop/OCRProject/MLmodels/knn_2n.gz'
 NUM_OF_IMAGES = 0
 NUM_OF_BINS = 9
 
@@ -37,19 +38,21 @@ def KNN_model(path):
 
     feature_list, labels = extractFeatures.extractHogFeatures(path)
     features = np.array(feature_list)
+
     labels_ascii = list(map(ord, labels))  #turns string labels in to ascii integer values.
     labels_ascii = np.array(labels_ascii)
 
 
     X_train, X_test, y_train, y_test = train_test_split(features, labels_ascii)
-    knn = KNeighborsClassifier(n_neighbors=3)
+    knn = KNeighborsClassifier(n_neighbors=2)
     knn.fit(X_train, y_train)
 
     # get the model accuracy
     model_score = knn.score(X_test, y_test)
+    print("the model score is: " + str(model_score))
 
     # save trained model
-    joblib.dump(knn, '/models/knn_model.pkl')
+    joblib.dump(knn, saved_models_path)
 
 
 
