@@ -18,7 +18,7 @@ import time
 ###################### Constants ###########################
 samples=[]
 winSize = (32,32)
-blockSize = (8,8)
+blockSize = (16,16)
 blockStride = (8,8)
 cellSize = (8,8)
 nbins = 9
@@ -28,6 +28,13 @@ histogramNormType = 0
 L2HysThreshold = 2.0000000000000001e-01
 gammaCorrection = 0
 nlevels = 64
+
+
+# So far the best result 87% accuracy. results in 324 variable vector
+# winSize = (32,32)
+# blockSize = (16,16)
+# blockStride = (8,8)
+# cellSize = (8,8)
 
 
 
@@ -43,13 +50,10 @@ def extractHogFeatures(path):
     label_list = []
     labels = os.listdir(path)
     if os.path.isdir(path):
-        # i = 0  #TODO delete this
         cur_letter = -1  #done for this specific file where it is saved.
         for subdir, dirs, files in os.walk(path):
             if len(files) == 0:
                 continue
-            # if i >= 3: continue #TODO delete this
-            # i += 1 #TODO delete this
             cur_letter += 1
             letter_list = []
             for image in files:
@@ -67,4 +71,35 @@ def extractHogFeatures(path):
                 feature_list = np.concatenate((feature_list, np.array(letter_list)))
     return feature_list, label_list
 
+
+def imagesAsIs(path):
+    """
+    returns the images as is with the corresponding labels.
+    :param patb:
+    :return:
+    """
+    feature_list = []
+    label_list = []
+    labels = os.listdir(path)
+    if os.path.isdir(path):
+        cur_letter = -1  #done for this specific file where it is saved.
+        for subdir, dirs, files in os.walk(path):
+            if len(files) == 0:
+                continue
+            cur_letter += 1
+            letter_list = []
+            for image in files:
+                label_list.append(labels[cur_letter])
+                if str(image).endswith('.jpg'):
+                    pathname = subdir + os.sep + image # true pathname of the image
+                    # hog = cv2.HOGDescriptor(winSize,blockSize,blockStride,cellSize,nbins,derivAperture,winSigma,
+                    #                         histogramNormType,L2HysThreshold,gammaCorrection,nlevels)
+                    im = cv2.imread(pathname)
+                    # h = np.array(hog.compute(im)).squeeze()
+                    letter_list.append()
+            if len(feature_list) == 0: # checks if list is empty
+                feature_list = np.array(letter_list)
+            else:
+                feature_list = np.concatenate((feature_list, np.array(letter_list)))
+    return feature_list, label_list
 
