@@ -38,7 +38,7 @@ def preprocess(im, dilation_kernel):
 
     #binary
     _ , thresh = cv2.threshold(gray, 127,255,cv2.THRESH_BINARY_INV)
-    cv2.imshow("binary", thresh)
+
 
     #dilation
     im_dilation = cv2.dilate(thresh, dilation_kernel, iterations=1)
@@ -52,6 +52,7 @@ def find_BB(im, orig):
     sorted_ctrs = sorted(ctrs, key=lambda cont: cv2.boundingRect(cont)[0])    #sorts contours by upper left point
 
     boxes = []
+    chars = []
 
     for i, cont in enumerate(sorted_ctrs):
 
@@ -59,15 +60,17 @@ def find_BB(im, orig):
         ROI = orig[y:y+h, x:x+w]
 
         #TODO output:
-        if w > 90 and h > 90:   #eliminating debris
-            boxes.append(ROI)   #TODO .copy()?
+        if w > 15 and h > 15:   #eliminating debris
+            chars.append(ROI)   #TODO .copy()?
+            boxes.append([x,x+w, y, y+h])
+
 
         # cv2.rectangle(orig,(x,y), (x+w, y+h), (0,255,0),2)
         # cv2.imshow("rect num:" + str(i), ROI)
 
     # cv2.imshow("meow",orig)
     # cv2.waitKey(0)
-    return boxes
+    return [chars, boxes]
 
 def detect_chars(image, dilation_kernel):
 
@@ -75,6 +78,7 @@ def detect_chars(image, dilation_kernel):
     # im = load_image(im_path)
     # kernel = np.ones((2,1), np.uint8)
     processed_im = preprocess(image.copy(), dilation_kernel)
+    # cv2.imshow("processed",processed_im)
     return find_BB(processed_im, image)
 
 
