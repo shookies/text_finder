@@ -47,7 +47,7 @@ def load_and_resize_image(im_path):
     newHeight = height if (height % 32 == 0) else round_down(height,32)     #rounds down to the nearest multiple of 32
                                                                             #in order for EAST to work with the image
     newWidth = width if (width % 32 == 0) else round_down(width,32)
-    print(newHeight, newWidth)
+    # print(newHeight, newWidth)
     ratio_width = width / float(newWidth)        #calculates ratio for later use (upscaling image back)
     ratio_height = height / float(newHeight)
     ratio = (ratio_width, ratio_height)
@@ -55,7 +55,7 @@ def load_and_resize_image(im_path):
     image = cv2.resize(image, (newWidth, newHeight))
     return [image, ratio, original, newWidth, newHeight]
 
-def detect(east_path, image, minConfidence, nmsThresh, inputHeight, inputWidth, dilation_kernel):
+def detect(east_path, image, minConfidence, inputHeight, inputWidth):
 
     model = cv2.dnn.readNet(east_path)
     height, width = image.shape[:2]
@@ -75,55 +75,70 @@ def detect(east_path, image, minConfidence, nmsThresh, inputHeight, inputWidth, 
     rW = W / float(inputWidth)
     rH = H / float(inputHeight)
 
+    #sort for testing
+    # for box in boxes:
+    #     print(box[0],box[1])
+    def dist(box):
+
+        return math.sqrt(box[0]**2 + box[1]**2)
+    foxes = boxes.tolist()
+    foxes = sorted(foxes, key=dist)
+    boxes = np.array(foxes)
+
     # loop over the bounding boxes
     for (startX, startY, endX, endY) in boxes:
+
+        print(startX, startY)
+
+        dilation_kernel, padding, debris_thresh = define_parameters(image,[startX, startY, endX, endY])
+        print(dilation_kernel.shape)
         # scale the bounding box coordinates based on the respective
         # ratios
-        startX = int(startX * rW)
-        startY = int(startY * rH)
-        endX = int(endX * rW)
-        endY = int(endY * rH)
+        startX = int(startX * rW) - padding
+        startY = int(startY * rH) - padding
+        endX = int(endX * rW) + padding
+        endY = int(endY * rH) + padding
         cv2.rectangle(image, (startX, startY), (endX, endY), (0, 255, 0), 2)
         word = image[startY:endY, startX:endX]
         # cv2.imshow("word",word)
-        chars, BB = CharDetector.detect_chars(word.astype('uint8'),dilation_kernel)
+        # print(dilation_kernel.shape)
+        # dilation_kernel = np.ones((9,3),np.uint8)
+        # print(dilation_kernel.shape)
+        chars, BB = CharDetector.detect_chars(word.astype('uint8'),dilation_kernel, debris_thresh)
         # char_boxes.append(chars)
         for box in BB:
             cv2.rectangle(image,(startX + box[0],startY + box[2]), (startX + box[1], startY + box[3]), (255,0,0),1)
-
-
-
-    # indices = cv2.dnn.NMSBoxesRotated(rects, confidences, minConfidence, nmsThresh)
-    word_boxes = []
-    # for i in indices:
-    #     vertices = cv2.boxPoints(rects[i[0]])   # get 4 corners of the rotated rect
-    #
-    #     for j in range(4):      # scale the bounding box coordinates based on the respective ratios
-    #         vertices[j][0] *= (width / float(inputWidth))
-    #         vertices[j][1] *= (height / float(inputHeight))
-    #     for j in range(4):
-    #         p1 = (vertices[j][0], vertices[j][1])
-    #         p2 = (vertices[(j + 1) % 4][0], vertices[(j + 1) % 4][1])
-    #         cv2.line(image, p1, p2, (0, 255, 0), 2, cv2.LINE_AA)
-    # word_boxes.append(vertices)
-
-    # for BB in word_boxes:
-    #     # cv2.imshow("word", word)
-    #     word = image[BB[0]:BB[2], BB[1]:BB[3]]
-    #     chars = CharDetector.detect_chars(word.astype('uint8'),dilation_kernel)
-    #     char_boxes.append(chars)
-    #     for char in chars:
-    #         cv2.rectangle(image,(char[0],char[1]), (char[2], char[3]), (255,0,0),1)
-
-
-    #REMINDER: opencv points are plotted as (x,y) NOT (row,column), and the y axis is positive downward.
-
 
     cv2.imshow("meow",image)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
 
+def define_parameters(image, BB):
 
+    ratio = calculate_ratio(image,BB)
+    height_constant = 200000
+    width_constant = 9
+    padding_constant = 12
+    debris_threshold_constant = 5
+    print(ratio * height_constant)
+    # print(ratio)
+    dilation_kernel = np.ones((int(ratio * height_constant), int(ratio * width_constant)), np.uint8)
+    padding = int(ratio * padding_constant)
+    debris_threshold = int(ratio * debris_threshold_constant)
+
+    return [dilation_kernel, padding, debris_threshold]
+
+
+def calculate_ratio(image,BB):
+
+    #Assumes axis-aligned bounding box (not rotated)
+    im_h, im_w = image.shape[:2]
+    bb_h = BB[3] - BB[1]
+    bb_w = BB[2] - BB[0]
+    im_area = im_h * im_w
+    bb_area = bb_h * bb_w
+
+    return float(bb_area / im_area)
 
 def decode(scores, geometry, minConfidence):
 
@@ -166,14 +181,6 @@ def decode(scores, geometry, minConfidence):
             h = xData0[x] + xData2[x]
             w = xData1[x] + xData3[x]
 
-            # # Calculate offset
-            # offset = ([offsetX + cosA * xData1[x] + sinA * xData2[x], offsetY - sinA * xData1[x] + cosA * xData2[x]])
-            #
-            # # Find points for rectangle
-            # p1 = (-sinA * h + offset[0], -cosA * h + offset[1])
-            # p3 = (-cosA * w + offset[0],  sinA * w + offset[1])
-            # center = (0.5*(p1[0]+p3[0]), 0.5*(p1[1]+p3[1]))
-            # rects.append((center, (w,h), -1*angle * 180.0 / math.pi))
             endX = int(offsetX + (cosA * xData1[x]) + (sinA * xData2[x]))
             endY = int(offsetY - (sinA * xData1[x]) + (cosA * xData2[x]))
             startX = int(endX - w)
@@ -189,17 +196,20 @@ def main():
 
     im_path = args.image
     east_path = args.east
-    nms = args.nms
     minConfidence = args.min_confidence
     image, ratio, orig, w, h = load_and_resize_image(im_path)
-    dilation_kernel = np.ones((1,1), np.uint8)
-    detect(east_path, image, minConfidence, nms, h, w, dilation_kernel)
+    detect(east_path, image, minConfidence, h, w)
 
     return 0
 
 main()
 
+# test_im = np.ones((100,100))
+# test_bb = [25,25,74,76]
+# print(calculate_ratio(test_im,test_bb))
+
+
 # -i /cs/usr/shookies/Desktop/text_finder/stop_sign.jpg -east /cs/usr/shookies/Desktop/text_finder/east_text_detection.pb
 #-i /cs/usr/shookies/Desktop/text_finder/test_im.png -east /cs/usr/shookies/Desktop/text_finder/east_text_detection.pb
-# --i /cs/usr/shookies/Desktop/text_finder/test2.png --east /cs/usr/shookies/Desktop/text_finder/east_text_detection.pb --width 512 --height 256
+# --i /cs/usr/shookies/Desktop/text_finder/test2.png --east /cs/usr/shookies/Desktop/text_finder/east_text_detection.pb
 # --i /cs/usr/shookies/Desktop/text_finder/lines.png --east /cs/usr/shookies/Desktop/text_finder/east_text_detection.pb

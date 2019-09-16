@@ -30,7 +30,7 @@ gammaCorrection = 0
 nlevels = 64
 
 
-# So far the best result 87% accuracy. results in 324 variable vector
+# So far the best result 88% accuracy. results in 324 variable vector (open images as grayscale)
 # winSize = (32,32)
 # blockSize = (16,16)
 # blockStride = (8,8)
@@ -62,7 +62,7 @@ def extractHogFeatures(path):
                     pathname = subdir + os.sep + image # true pathname of the image
                     hog = cv2.HOGDescriptor(winSize,blockSize,blockStride,cellSize,nbins,derivAperture,winSigma,
                                             histogramNormType,L2HysThreshold,gammaCorrection,nlevels)
-                    im = cv2.imread(pathname)
+                    im = cv2.imread(pathname, cv2.IMREAD_GRAYSCALE)
                     h = np.array(hog.compute(im)).squeeze()
                     letter_list.append(h)
             if len(feature_list) == 0: # checks if list is empty
@@ -94,9 +94,9 @@ def imagesAsIs(path):
                     pathname = subdir + os.sep + image # true pathname of the image
                     # hog = cv2.HOGDescriptor(winSize,blockSize,blockStride,cellSize,nbins,derivAperture,winSigma,
                     #                         histogramNormType,L2HysThreshold,gammaCorrection,nlevels)
-                    im = cv2.imread(pathname)
+                    im = cv2.imread(pathname, cv2.IMREAD_GRAYSCALE)
                     # h = np.array(hog.compute(im)).squeeze()
-                    letter_list.append()
+                    letter_list.append(im)
             if len(feature_list) == 0: # checks if list is empty
                 feature_list = np.array(letter_list)
             else:
