@@ -30,7 +30,26 @@ def load_image(im_path):
 
     return image
 
-def preprocess(im, dilation_kernel):
+# def preprocess(im, dilation_kernel):
+#
+#     #grayscale
+#     gray = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
+#
+#
+#     #binary
+#     _ , thresh = cv2.threshold(gray, 127,255,cv2.THRESH_BINARY_INV)
+#
+#
+#     #dilation
+#     im_dilation = cv2.dilate(thresh, dilation_kernel, iterations=1)
+#
+#     return im_dilation
+
+#####NOTE#####: The following functions were changed to support the creation of the dilation_kernel here instead of
+#               in TextDetector.py. For som reason when the kernel was created there it would not have any effect on
+#               preprocessing.
+
+def preprocess(im, BB):
 
     #grayscale
     gray = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
@@ -41,11 +60,63 @@ def preprocess(im, dilation_kernel):
 
 
     #dilation
+    dilation_kernel = create_kernel(im,BB)
+    print(dilation_kernel.shape)
     im_dilation = cv2.dilate(thresh, dilation_kernel, iterations=1)
 
     return im_dilation
 
-def find_BB(im, orig):
+def detect_chars(image, word, BB):
+
+    # im_path = parse_args()
+    # im = load_image(im_path)
+    # kernel = np.ones((2,1), np.uint8)
+    dilation_kernel, padding, debris_threshold = define_parameters(image,BB)    #TODO wasnt working: dilation_kernel was made here and was a parameter for preprocess.
+    # print(dilation_kernel.shape)
+    processed_im = preprocess(word.copy(), BB)
+    # cv2.imshow("processed",processed_im)
+    return find_BB(processed_im, word, debris_threshold)
+
+def create_kernel(image, BB):
+
+    ratio = calculate_ratio(image,BB)
+    height_constant = 15
+    width_constant = 3
+    ker_dims = (int(ratio * height_constant), int(ratio * width_constant))
+    return np.ones(ker_dims, np.uint8)
+
+def define_parameters(image, BB):
+
+    ratio = calculate_ratio(image,BB)
+    height_constant = 10000000
+    width_constant = 3
+
+    padding_constant = 12
+    debris_threshold_constant = 5
+    # print(ratio * height_constant)
+    print(ratio)
+    ker_dims = (int(ratio * height_constant), int(ratio * width_constant))
+    dilation_kernel = np.ones(ker_dims, np.uint8)
+    padding = int(ratio * padding_constant)
+    debris_threshold = int(ratio * debris_threshold_constant)
+
+    return [dilation_kernel, padding, debris_threshold]
+
+def calculate_ratio(image,BB):
+
+    #Assumes axis-aligned bounding box (not rotated)
+    im_h, im_w = image.shape[:2]
+    bb_h = BB[3] - BB[1]
+    bb_w = BB[2] - BB[0]
+    im_area = im_h * im_w
+    bb_area = bb_h * bb_w
+
+    return float(bb_area / im_area)
+
+
+##############################################################################################
+
+def find_BB(im, orig, threshold):
 
     ctrs, heir = cv2.findContours(im.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
@@ -59,27 +130,21 @@ def find_BB(im, orig):
         x, y, w, h = cv2.boundingRect(cont)     #get bounding box
         ROI = orig[y:y+h, x:x+w]
 
-        #TODO output:
-        if w > 15 and h > 15:   #eliminating debris
-            chars.append(ROI)   #TODO .copy()?
+
+        if w > threshold and h > threshold:   #eliminating debris
+            chars.append(ROI)
             boxes.append([x,x+w, y, y+h])
 
-
-        # cv2.rectangle(orig,(x,y), (x+w, y+h), (0,255,0),2)
-        # cv2.imshow("rect num:" + str(i), ROI)
-
-    # cv2.imshow("meow",orig)
-    # cv2.waitKey(0)
     return [chars, boxes]
 
-def detect_chars(image, dilation_kernel):
-
-    # im_path = parse_args()
-    # im = load_image(im_path)
-    # kernel = np.ones((2,1), np.uint8)
-    processed_im = preprocess(image.copy(), dilation_kernel)
-    # cv2.imshow("processed",processed_im)
-    return find_BB(processed_im, image)
+# def detect_chars(image, dilation_kernel, debris_threshold):
+#
+#     # im_path = parse_args()
+#     # im = load_image(im_path)
+#     # kernel = np.ones((2,1), np.uint8)
+#     processed_im = preprocess(image.copy(), dilation_kernel)
+#     # cv2.imshow("processed",processed_im)
+#     return find_BB(processed_im, image, debris_threshold)
 
 
 # detect_chars()
