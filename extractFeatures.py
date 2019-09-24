@@ -28,7 +28,7 @@ histogramNormType = 0
 L2HysThreshold = 2.0000000000000001e-01
 gammaCorrection = 0
 nlevels = 64
-
+NORMALIZE = 255
 
 # So far the best result 88% accuracy. results in 324 variable vector (open images as grayscale)
 # winSize = (32,32)
@@ -94,7 +94,7 @@ def imagesAsIs(path):
                     pathname = subdir + os.sep + image # true pathname of the image
                     # hog = cv2.HOGDescriptor(winSize,blockSize,blockStride,cellSize,nbins,derivAperture,winSigma,
                     #                         histogramNormType,L2HysThreshold,gammaCorrection,nlevels)
-                    im = cv2.imread(pathname, cv2.IMREAD_GRAYSCALE)
+                    im = cv2.imread(pathname, cv2.IMREAD_GRAYSCALE) / NORMALIZE
                     # h = np.array(hog.compute(im)).squeeze()
                     letter_list.append(im)
             if len(feature_list) == 0: # checks if list is empty
