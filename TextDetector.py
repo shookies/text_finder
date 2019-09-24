@@ -94,20 +94,17 @@ def detect(east_path, image, minConfidence, inputHeight, inputWidth):
         # padding, debris_thresh = define_parameters(image,[startX, startY, endX, endY])
         # scale the bounding box coordinates based on the respective
         # ratios
-        # startX = int(startX * rW) - padding
-        # startY = int(startY * rH) - padding
-        # endX = int(endX * rW) + padding
-        # endY = int(endY * rH) + padding
         startX = int(startX * rW) - 5
         startY = int(startY * rH) - 5
         endX = int(endX * rW) + 5
         endY = int(endY * rH) + 5
+        # startX = int(startX * rW)
+        # startY = int(startY * rH)
+        # endX = int(endX * rW)
+        # endY = int(endY * rH)
         cv2.rectangle(image, (startX, startY), (endX, endY), (0, 255, 0), 2)
         word = image[startY:endY, startX:endX]
-        # cv2.imshow("word",word)
-        # print(dilation_kernel.shape)
-        # dilation_kernel = np.ones((9,3),np.uint8)
-        # print(dilation_kernel.shape)
+
         chars, BB = CharDetector.detect_chars(image.astype('uint8'), word.astype('uint8'),[startX, startY, endX, endY])
         # char_boxes.append(chars)
         for box in BB:
@@ -117,31 +114,7 @@ def detect(east_path, image, minConfidence, inputHeight, inputWidth):
     cv2.waitKey(0)
     cv2.destroyAllWindows()
 
-# def create_kernel(image, BB):
-#
-#     ratio = calculate_ratio(image,BB)
-#     height_constant = 6
-#     width_constant = 2
-#     ker_dims = (int(ratio * height_constant), int(ratio * width_constant))
-#     return np.ones(ker_dims, np.uint8)
 
-# def define_parameters(image, BB):
-#
-#     ratio = calculate_ratio(image,BB)
-#     height_constant = 2000
-#     width_constant = 9
-#
-#     padding_constant = 12
-#     debris_threshold_constant = 5
-#     print(ratio * height_constant)
-#     # print(ratio)
-#     ker_dims = (int(ratio * height_constant), int(ratio * width_constant))
-#     dilation_kernel = np.ones(ker_dims, np.uint8)
-#     padding = int(ratio * padding_constant)
-#     debris_threshold = int(ratio * debris_threshold_constant)
-#
-#     return [dilation_kernel, padding, debris_threshold]
-    # return [padding, debris_threshold]
 
 
 def calculate_ratio(image,BB):

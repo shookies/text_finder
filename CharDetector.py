@@ -2,6 +2,7 @@ import numpy as np
 import cv2, os, tempfile, pdf2image
 import argparse as ap
 
+
 #TODO change preprocess values for words instead of characters (args)
 
 def parse_args():
@@ -30,20 +31,7 @@ def load_image(im_path):
 
     return image
 
-# def preprocess(im, dilation_kernel):
-#
-#     #grayscale
-#     gray = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
-#
-#
-#     #binary
-#     _ , thresh = cv2.threshold(gray, 127,255,cv2.THRESH_BINARY_INV)
-#
-#
-#     #dilation
-#     im_dilation = cv2.dilate(thresh, dilation_kernel, iterations=1)
-#
-#     return im_dilation
+
 
 #####NOTE#####: The following functions were changed to support the creation of the dilation_kernel here instead of
 #               in TextDetector.py. For som reason when the kernel was created there it would not have any effect on
@@ -64,15 +52,17 @@ def preprocess(im, BB):
     print(dilation_kernel.shape)
     im_dilation = cv2.dilate(thresh, dilation_kernel, iterations=1)
 
-    return im_dilation
+    #erosion
+    ker_dims = (1,1)
+    erosion_kernel = np.ones(ker_dims,np.uint8)
+    im_erosion = cv2.erode(im_dilation,erosion_kernel,iterations=1)
+
+    return im_erosion
 
 def detect_chars(image, word, BB):
 
-    # im_path = parse_args()
-    # im = load_image(im_path)
-    # kernel = np.ones((2,1), np.uint8)
+
     dilation_kernel, padding, debris_threshold = define_parameters(image,BB)    #TODO wasnt working: dilation_kernel was made here and was a parameter for preprocess.
-    # print(dilation_kernel.shape)
     processed_im = preprocess(word.copy(), BB)
     # cv2.imshow("processed",processed_im)
     return find_BB(processed_im, word, debris_threshold)
@@ -81,7 +71,7 @@ def create_kernel(image, BB):
 
     ratio = calculate_ratio(image,BB)
     height_constant = 15
-    width_constant = 3
+    width_constant = 2
     ker_dims = (int(ratio * height_constant), int(ratio * width_constant))
     return np.ones(ker_dims, np.uint8)
 
@@ -89,13 +79,14 @@ def define_parameters(image, BB):
 
     ratio = calculate_ratio(image,BB)
     height_constant = 10000000
-    width_constant = 3
+    width_constant = 2
 
     padding_constant = 12
     debris_threshold_constant = 5
     # print(ratio * height_constant)
     print(ratio)
-    ker_dims = (int(ratio * height_constant), int(ratio * width_constant))
+    # ker_dims = (int(ratio * height_constant), int((ratio ** (-1)) * (ratio ** (-1))))
+    ker_dims = (0,0)
     dilation_kernel = np.ones(ker_dims, np.uint8)
     padding = int(ratio * padding_constant)
     debris_threshold = int(ratio * debris_threshold_constant)
@@ -111,7 +102,7 @@ def calculate_ratio(image,BB):
     im_area = im_h * im_w
     bb_area = bb_h * bb_w
 
-    return float(bb_area / im_area)
+    return float(bb_h / im_h)
 
 
 ##############################################################################################
@@ -128,7 +119,7 @@ def find_BB(im, orig, threshold):
     for i, cont in enumerate(sorted_ctrs):
 
         x, y, w, h = cv2.boundingRect(cont)     #get bounding box
-        ROI = orig[y:y+h, x:x+w]
+        ROI = orig[y:y+h, x-1:x+w+1]
 
 
         if w > threshold and h > threshold:   #eliminating debris
