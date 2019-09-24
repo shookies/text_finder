@@ -31,14 +31,12 @@ def parse_arguments():
 
 def load_and_resize_image(im_path):
 
-    #TODO handle multiple pages
-    #TODO handle file path error
     if im_path.endswith(".pdf"):
         # args.image = pdf2image.convert_from_path(args.image)
         with tempfile.TemporaryDirectory() as path:
             images_from_path = pdf2image.convert_from_path(im_path, output_folder=path, last_page=1, first_page =0)
 
-
+                                                                #TODO handle multiple pages
         mat_from_image = np.array(images_from_path[0])
         image = cv2.cvtColor(mat_from_image, cv2.COLOR_RGB2BGR)
     else:
@@ -47,7 +45,7 @@ def load_and_resize_image(im_path):
     original = image.copy()
     height, width = image.shape[:2]
     newHeight = height if (height % 32 == 0) else round_down(height,32)     #rounds down to the nearest multiple of 32
-    #in order for EAST to work with the image
+                                                                            #in order for EAST to work with the image
     newWidth = width if (width % 32 == 0) else round_down(width,32)
     # print(newHeight, newWidth)
     ratio_width = width / float(newWidth)        #calculates ratio for later use (upscaling image back)
@@ -78,6 +76,8 @@ def detect(east_path, image, minConfidence, inputHeight, inputWidth):
     rH = H / float(inputHeight)
 
     #sort for testing
+    # for box in boxes:
+    #     print(box[0],box[1])
     def dist(box):
 
         return math.sqrt(box[0]**2 + box[1]**2)
@@ -88,62 +88,45 @@ def detect(east_path, image, minConfidence, inputHeight, inputWidth):
     # loop over the bounding boxes
     for (startX, startY, endX, endY) in boxes:
 
-        # print(startX, startY)
+        print(startX, startY)
 
-        dilation_kernel, padding, char_padding, debris_thresh = define_parameters(image,[startX, startY, endX, endY])
+        # dilation_kernel, padding, debris_thresh = define_parameters(image,[startX, startY, endX, endY])
         # padding, debris_thresh = define_parameters(image,[startX, startY, endX, endY])
         # scale the bounding box coordinates based on the respective
         # ratios
-        startX = int(startX * rW) - padding
-        startY = int(startY * rH) - padding
-        endX = int(endX * rW) + padding
-        endY = int(endY * rH) + padding
+        startX = int(startX * rW) - 5
+        startY = int(startY * rH) - 5
+        endX = int(endX * rW) + 5
+        endY = int(endY * rH) + 5
+        # startX = int(startX * rW)
+        # startY = int(startY * rH)
+        # endX = int(endX * rW)
+        # endY = int(endY * rH)
         cv2.rectangle(image, (startX, startY), (endX, endY), (0, 255, 0), 2)
         word = image[startY:endY, startX:endX]
-        chars, BB = CharDetector.detect_chars(word.astype('uint8'), dilation_kernel, debris_thresh)
+
+        chars, BB = CharDetector.detect_chars(image.astype('uint8'), word.astype('uint8'),[startX, startY, endX, endY])
         # char_boxes.append(chars)
         for box in BB:
-            cv2.rectangle(image,(startX + box[0] - char_padding,startY + box[2]), (startX + box[1] + char_padding, startY + box[3]), (255,0,0),1)
+            cv2.rectangle(image,(startX + box[0],startY + box[2]), (startX + box[1], startY + box[3]), (255,0,0),1)
 
     cv2.imshow("meow",image)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
 
 
-def define_parameters(image, BB):
-
-    #TODO use only height of text. width = difference between BB of characters in x
-    ratio = calculate_ratio(image,BB)
-    height_constant = 200
-    width_constant = 80
-    #
-    # padding_constant = 12
-    debris_threshold_constant = 20
-    # print(ratio)
-    h = int(ratio * height_constant)
-    w = int(ratio * width_constant)
-    # ker_dims = (20, 2)
-    ker_dims = (h, w)
-    print(ker_dims)
-    dilation_kernel = np.ones(ker_dims, np.uint8)
-    # padding = int(ratio * padding_constant)
-    debris_threshold = int(ratio * debris_threshold_constant)   #threshold is 0 for small enough words
-
-    # dilation_kernel = np.ones((2000,2),np.uint8)
-    padding = 2
-    char_padding = 1
-    # debris_threshold = 1
-
-    return [dilation_kernel, padding, char_padding, debris_threshold]
 
 
 def calculate_ratio(image,BB):
 
     #Assumes axis-aligned bounding box (not rotated)
-    im_h, _ = image.shape[:2]
+    im_h, im_w = image.shape[:2]
     bb_h = BB[3] - BB[1]
+    bb_w = BB[2] - BB[0]
+    im_area = im_h * im_w
+    bb_area = bb_h * bb_w
 
-    return float(bb_h / im_h)
+    return float(bb_area / im_area)
 
 def decode(scores, geometry, minConfidence):
 
@@ -218,6 +201,3 @@ main()
 #-i /cs/usr/shookies/Desktop/text_finder/test_im.png -east /cs/usr/shookies/Desktop/text_finder/east_text_detection.pb
 # --i /cs/usr/shookies/Desktop/text_finder/test2.png --east /cs/usr/shookies/Desktop/text_finder/east_text_detection.pb
 # --i /cs/usr/shookies/Desktop/text_finder/lines.png --east /cs/usr/shookies/Desktop/text_finder/east_text_detection.pb
-
-# -i C:\Users\User\Desktop\CS\text_finder\blind.png -east C:\Users\User\Desktop\CS\text_finder\east_text_detection.pb
-# -i C:\Users\User\Desktop\CS\text_finder\gilayon.pdf -east C:\Users\User\Desktop\CS\text_finder\east_text_detection.pb
