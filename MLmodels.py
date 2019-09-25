@@ -15,7 +15,7 @@ import extractFeatures
 from sklearn.model_selection import  train_test_split
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.externals import joblib
-from tensorflow.keras.layers import Input, Dense, Conv2D, Activation, Add, MaxPool2D, Flatten
+from tensorflow.keras.layers import Input, Dense, Conv2D, Activation, Add, MaxPooling2D, Flatten, Dropout
 from tensorflow.keras.models import Model
 from tensorflow.keras.optimizers import Adam
 
@@ -123,18 +123,21 @@ def CNN_Model(path, override_dataset):
 
     # CNN architecture
     input = Input(shape=(32, 32, 1))
-    conv1 = Conv2D(32, (5, 5), padding='same', activation='relu')(input)
-    pool1 = MaxPool2D(pool_size=(2, 2))(conv1)
-    conv2 = Conv2D(48, (5, 5), padding='same', activation='relu')(pool1)
-    pool2 = MaxPool2D(pool_size=(2, 2))(conv2)
-    conv3 = Conv2D(62, (5, 5), padding='same', activation='relu')(pool2)
-    pool3 = MaxPool2D(pool_size=(2, 2))(conv3)
-    flatten = Flatten()(pool3)
-    fully_connected = Dense(62)(flatten)
-    output = Dense(1, activation='sigmoid')(fully_connected)
+    conv1 = Conv2D(6, (5, 5), activation='relu')(input)
+    pool1 = MaxPooling2D(pool_size=(2, 2))(conv1)
+    conv2 = Conv2D(16, (5, 5), activation='relu')(pool1)
+    pool2 = MaxPooling2D(pool_size=(2, 2))(conv2)
+    conv3 = Conv2D(64, (2, 2), activation='relu')(pool2)
+    # pool3 = MaxPooling2D(pool_size=(2, 2))(conv3)
+    flatten = Flatten()(conv3)
+    fully_connected = Dense(120, activation='relu')(flatten)
+    fully_connected = Dense(84, activation='relu')(flatten)
+    output = Dense(62, activation='softmax')(fully_connected)
     model = Model(inputs=input, outputs=output)
-    model.compile(loss='mean_squared_error', optimizer='adam', metrics=['accuracy'])
-    model.fit(X, y, batch_size=100, epochs=5 , validation_split=0.2)
+    model.compile(loss='sparse_categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
+    # plt.imshow(X[5000].reshape(32,32), cmap='gray') # TODO delete
+    # plt.show()
+    model.fit(X, y, batch_size=1000, epochs=5 , validation_split=0.2)
     # TODO this works however the model sucks, find better architecture / loss functions etc.
 
     # Save the model
@@ -142,4 +145,4 @@ def CNN_Model(path, override_dataset):
 
 
 # KNN_model(pathname)
-CNN_Model(pathname, 1)
+CNN_Model(pathname, 0)
