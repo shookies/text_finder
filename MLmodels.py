@@ -16,8 +16,10 @@ from sklearn.model_selection import  train_test_split
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.externals import joblib
 from tensorflow.keras.layers import Input, Dense, Conv2D, Activation, Add, MaxPooling2D, Flatten, Dropout
-from tensorflow.keras.models import Model
+from tensorflow.keras.models import Model, Sequential
 from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.utils import to_categorical
+import keras
 
 
 ###################### Constants ###########################
@@ -95,6 +97,14 @@ def CNN_Model(path, override_dataset):
     :return:
     """
 
+    def CNN_Model(path, override_dataset):
+        """
+        a CNN for recognizing letters from the database within the path
+        :param path: based on architecture from https://www.ijraset.com/fileserve.php?FID=16040
+        :return:
+        """
+
+    # Load the data
     if override_dataset:
 
         # Get images and labels
@@ -103,9 +113,11 @@ def CNN_Model(path, override_dataset):
         labels_ascii = list(map(ord, labels))  #turns string labels in to ascii integer values.
         labels_ascii = np.array(labels_ascii)
 
-    # split in to test and train datasets
+        # split in to test and train datasets
 
-        # X_train, X_test, y_train, y_test = train_test_split(features, labels_ascii)
+        X_train, X_test, y_train, y_test = train_test_split(features, labels_ascii)
+        X_train = X_train.reshape(-1, 32, 32, 1)
+        X_test = X_test.reshape(-1, 32, 32, 1)
         X = features
         y = labels_ascii
         X = X.reshape(-1, 32, 32, 1)
@@ -121,27 +133,113 @@ def CNN_Model(path, override_dataset):
         X = joblib.load(cnn_training_data_path)
         y = joblib.load(cnn_training_labels_path)
 
-    # CNN architecture
-    input = Input(shape=(32, 32, 1))
-    conv1 = Conv2D(6, (5, 5), activation='relu')(input)
-    pool1 = MaxPooling2D(pool_size=(2, 2))(conv1)
-    conv2 = Conv2D(16, (5, 5), activation='relu')(pool1)
-    pool2 = MaxPooling2D(pool_size=(2, 2))(conv2)
-    conv3 = Conv2D(64, (2, 2), activation='relu')(pool2)
-    # pool3 = MaxPooling2D(pool_size=(2, 2))(conv3)
-    flatten = Flatten()(conv3)
-    fully_connected = Dense(120, activation='relu')(flatten)
-    fully_connected = Dense(84, activation='relu')(flatten)
-    output = Dense(62, activation='softmax')(fully_connected)
-    model = Model(inputs=input, outputs=output)
-    model.compile(loss='sparse_categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
-    # plt.imshow(X[5000].reshape(32,32), cmap='gray') # TODO delete
-    # plt.show()
-    model.fit(X, y, batch_size=1000, epochs=5 , validation_split=0.2)
-    # TODO this works however the model sucks, find better architecture / loss functions etc.
+        # Split data and reshape
+        X_train, X_test, y_train, y_test = train_test_split(X, y)
+        X_train = X_train.reshape(-1, 32, 32, 1)
+        X_test = X_test.reshape(-1, 32, 32, 1)
+        y_train = to_categorical(y_train)
+        y_test = to_categorical(y_test)
+
+
+    #  CNN Architecture
+    model = Sequential()
+    model.add(Conv2D(30, (5, 5), input_shape=(32, 32, 1), activation='relu'))
+    model.add(MaxPooling2D())
+    model.add(Conv2D(15, (3, 3), activation='relu'))
+    model.add(MaxPooling2D())
+    model.add(Dropout(0.2))
+    model.add(Flatten())
+    model.add(Dense(128, activation='relu', kernel_regularizer=keras.regularizers.l2(l=0.1)))
+    model.add(Dense(100, activation='relu', kernel_regularizer=keras.regularizers.l2(l=0.1)))
+    model.add(Dense(123, activation='softmax'))
+    # Compile model
+    model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
+    print(model.summary())
+    # Fit the model
+    model.fit(X_test, y_test, validation_data=(X_test, y_test), epochs=100, batch_size=250, verbose=2)
+    # Final evaluation of the model
+    scores = model.evaluate(X_test, y_test, verbose=0)
+    print("Baseline Error: %.2f%%" % (100-scores[1]*100))
 
     # Save the model
     model.save(cnn_model_path)
+
+    # This model works quite well, 13% error which is quite low, and it isn't overfitting.
+    # Needs some extra work
+
+#     # CNN architecture OLD MODEL
+
+#     input = Input(shape=(32, 32, 1))
+#     conv1 = Conv2D(32, (3, 3))(input)
+#     pool1 = MaxPooling2D(pool_size=(2, 2))(conv1)
+#     drop1 = Dropout(0.5)(pool1)
+#     conv2 = Conv2D(64, (3, 3))(drop1)
+#     pool2 = MaxPooling2D(pool_size=(2, 2))(conv2)
+#     drop2 = Dropout(0.5)(pool2)
+# #     conv3 = Conv2D(64, (2, 2), activation='relu')(pool2)
+#     # pool3 = MaxPooling2D(pool_size=(2, 2))(conv3)
+#     flatten = Flatten()(drop2)
+#     fully_connected = Dense(512, activation='sigmoid')(flatten)
+#     output = Dense(62, activation='sigmoid')(fully_connected)
+#     model = Model(inputs=input, outputs=output)
+#     model.compile(loss='sparse_categorical_crossentropy',optimizer='Adam', metrics=['accuracy'])
+#     print(model.summary())
+#     plt.imshow(X[5000].reshape(32,32), cmap='gray') # TODO delete
+#     plt.show()
+#     model.fit(X, y, epochs=10 , validation_split=0.3)
+#     # TODO this works however the model sucks, find better architecture / loss functions etc.
+
+# Save the model
+#     model.save(cnn_model_path)
+
+
+# if override_dataset: ANOTHER OLD MODEL
+    #
+    #     # Get images and labels
+    #     feature_list, labels = extractFeatures.imagesAsIs(path)
+    #     features = np.array(feature_list)
+    #     labels_ascii = list(map(ord, labels))  #turns string labels in to ascii integer values.
+    #     labels_ascii = np.array(labels_ascii)
+    #
+    # # split in to test and train datasets
+    #
+    #     # X_train, X_test, y_train, y_test = train_test_split(features, labels_ascii)
+    #     X = features
+    #     y = labels_ascii
+    #     X = X.reshape(-1, 32, 32, 1)
+    #     # X_test = X_test.reshape(-1, 32, 32, 1)
+    #
+    #     # create save files for the data
+    #     joblib.dump(X, cnn_training_data_path)
+    #     joblib.dump(y, cnn_training_labels_path)
+    #     # joblib.dump(X_test, cnn_test_data_path)
+    #     # joblib.dump(y_test, cnn_test_labels_path)
+    #
+    # else:
+    #     X = joblib.load(cnn_training_data_path)
+    #     y = joblib.load(cnn_training_labels_path)
+    #
+    # # CNN architecture
+    # input = Input(shape=(32, 32, 1))
+    # conv1 = Conv2D(6, (5, 5), activation='relu')(input)
+    # pool1 = MaxPooling2D(pool_size=(2, 2))(conv1)
+    # conv2 = Conv2D(16, (5, 5), activation='relu')(pool1)
+    # pool2 = MaxPooling2D(pool_size=(2, 2))(conv2)
+    # conv3 = Conv2D(64, (2, 2), activation='relu')(pool2)
+    # # pool3 = MaxPooling2D(pool_size=(2, 2))(conv3)
+    # flatten = Flatten()(conv3)
+    # fully_connected = Dense(120, activation='relu')(flatten)
+    # fully_connected = Dense(84, activation='relu')(flatten)
+    # output = Dense(62, activation='softmax')(fully_connected)
+    # model = Model(inputs=input, outputs=output)
+    # model.compile(loss='sparse_categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
+    # # plt.imshow(X[5000].reshape(32,32), cmap='gray') # TODO delete
+    # # plt.show()
+    # model.fit(X, y, batch_size=1000, epochs=5 , validation_split=0.2)
+    # # TODO this works however the model sucks, find better architecture / loss functions etc.
+    #
+    # # Save the model
+    # model.save(cnn_model_path)
 
 
 # KNN_model(pathname)
