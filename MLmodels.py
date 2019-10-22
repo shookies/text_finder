@@ -4,6 +4,12 @@ in to actual characters
 """
 
 
+"""
+takes a number of ML models and saves them for the classification of letters
+in to actual characters
+"""
+
+
 ###################### Imports ###########################
 import numpy as np
 import cv2
@@ -31,14 +37,15 @@ path_of_training_labels ='/cs/usr/punims/Desktop/OCRProject/saved_data_sets/trai
 path_of_test_data = '/cs/usr/punims/Desktop/OCRProject/saved_data_sets/test_data.pkl'
 path_of_test_labels = '/cs/usr/punims/Desktop/OCRProject/saved_data_sets/test_labels.pkl'
 
-cnn_training_data_path = '/cs/usr/punims/Desktop/OCRProject/cnn_saved_data_sets/train_data.pkl'
-cnn_test_data_path = '/cs/usr/punims/Desktop/OCRProject/cnn_saved_data_sets/test_data.pkl'
-cnn_training_labels_path = '/cs/usr/punims/Desktop/OCRProject/cnn_saved_data_sets/train_labels.pkl'
+cnn_training_data_path = 'cnn_saved_data_sets/train_data.pkl'
+cnn_test_data_path = 'cnn_saved_data_sets/test_data.pkl'
+cnn_training_labels_path = 'cnn_saved_data_sets/train_labels.pkl'
 cnn_test_labels_path = '/cs/usr/punims/Desktop/OCRProject/cnn_saved_data_sets/test_labels.pkl'
-cnn_model_path = '/cs/usr/punims/Desktop/OCRProject/cnn_saved_data_sets/cnn_model.gz'
+cnn_model_path = '/content/drive/My Drive/OCRProject/MLmodels/cnn_model.gz'
 
 NUM_OF_IMAGES = 0
 NUM_OF_BINS = 9
+
 
 
 
@@ -97,14 +104,6 @@ def CNN_Model(path, override_dataset):
     :return:
     """
 
-    def CNN_Model(path, override_dataset):
-        """
-        a CNN for recognizing letters from the database within the path
-        :param path: based on architecture from https://www.ijraset.com/fileserve.php?FID=16040
-        :return:
-        """
-
-    # Load the data
     if override_dataset:
 
         # Get images and labels
@@ -133,7 +132,15 @@ def CNN_Model(path, override_dataset):
         X = joblib.load(cnn_training_data_path)
         y = joblib.load(cnn_training_labels_path)
 
-        # Split data and reshape
+        where_digits = np.where(np.logical_and(y>=48, y<=57))
+        y[where_digits] = y[where_digits] - 48
+
+        where_small_letters = np.where(np.logical_and(y>=97, y<=122))
+        y[where_small_letters] = y[where_small_letters] - 61
+
+        where_big_letters = np.where(np.logical_and(y>=65, y<=90))
+        y[where_big_letters] = y[where_big_letters] - 55
+
         X_train, X_test, y_train, y_test = train_test_split(X, y)
         X_train = X_train.reshape(-1, 32, 32, 1)
         X_test = X_test.reshape(-1, 32, 32, 1)
@@ -141,7 +148,7 @@ def CNN_Model(path, override_dataset):
         y_test = to_categorical(y_test)
 
 
-    #  CNN Architecture
+
     model = Sequential()
     model.add(Conv2D(30, (5, 5), input_shape=(32, 32, 1), activation='relu'))
     model.add(MaxPooling2D())
@@ -149,9 +156,10 @@ def CNN_Model(path, override_dataset):
     model.add(MaxPooling2D())
     model.add(Dropout(0.2))
     model.add(Flatten())
-    model.add(Dense(128, activation='relu', kernel_regularizer=keras.regularizers.l2(l=0.1)))
-    model.add(Dense(100, activation='relu', kernel_regularizer=keras.regularizers.l2(l=0.1)))
-    model.add(Dense(123, activation='softmax'))
+    #     model.add(Dense(1024, activation='relu', kernel_regularizer=keras.regularizers.l2(l=0.1)))
+    #     model.add(Dense(512, activation='relu', kernel_regularizer=keras.regularizers.l2(l=0.1)))
+    model.add(Dense(62, activation='softmax'))
+    print(y)
     # Compile model
     model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
     print(model.summary())
@@ -161,37 +169,36 @@ def CNN_Model(path, override_dataset):
     scores = model.evaluate(X_test, y_test, verbose=0)
     print("Baseline Error: %.2f%%" % (100-scores[1]*100))
 
+    # This model seems to work well with a 3.3% base error (nearly 97% accuracy) 
+
+    #     # CNN architecture OLD
+
+    #     input = Input(shape=(32, 32, 1))
+    #     conv1 = Conv2D(32, (3, 3))(input)
+    #     pool1 = MaxPooling2D(pool_size=(2, 2))(conv1)
+    #     drop1 = Dropout(0.5)(pool1)
+    #     conv2 = Conv2D(64, (3, 3))(drop1)
+    #     pool2 = MaxPooling2D(pool_size=(2, 2))(conv2)
+    #     drop2 = Dropout(0.5)(pool2)
+    # #     conv3 = Conv2D(64, (2, 2), activation='relu')(pool2)
+    #     # pool3 = MaxPooling2D(pool_size=(2, 2))(conv3)
+    #     flatten = Flatten()(drop2)
+    #     fully_connected = Dense(512, activation='sigmoid')(flatten)
+    #     output = Dense(62, activation='sigmoid')(fully_connected)
+    #     model = Model(inputs=input, outputs=output)
+    #     model.compile(loss='sparse_categorical_crossentropy',optimizer='Adam', metrics=['accuracy'])
+    #     print(model.summary())
+    #     plt.imshow(X[5000].reshape(32,32), cmap='gray') # TODO delete
+    #     plt.show()
+    #     model.fit(X, y, epochs=10 , validation_split=0.3)
+    #     # TODO this works however the model sucks, find better architecture / loss functions etc.
+
     # Save the model
     model.save(cnn_model_path)
 
-    # This model works quite well, 13% error which is quite low, and it isn't overfitting.
-    # Needs some extra work
 
-#     # CNN architecture OLD MODEL
-
-#     input = Input(shape=(32, 32, 1))
-#     conv1 = Conv2D(32, (3, 3))(input)
-#     pool1 = MaxPooling2D(pool_size=(2, 2))(conv1)
-#     drop1 = Dropout(0.5)(pool1)
-#     conv2 = Conv2D(64, (3, 3))(drop1)
-#     pool2 = MaxPooling2D(pool_size=(2, 2))(conv2)
-#     drop2 = Dropout(0.5)(pool2)
-# #     conv3 = Conv2D(64, (2, 2), activation='relu')(pool2)
-#     # pool3 = MaxPooling2D(pool_size=(2, 2))(conv3)
-#     flatten = Flatten()(drop2)
-#     fully_connected = Dense(512, activation='sigmoid')(flatten)
-#     output = Dense(62, activation='sigmoid')(fully_connected)
-#     model = Model(inputs=input, outputs=output)
-#     model.compile(loss='sparse_categorical_crossentropy',optimizer='Adam', metrics=['accuracy'])
-#     print(model.summary())
-#     plt.imshow(X[5000].reshape(32,32), cmap='gray') # TODO delete
-#     plt.show()
-#     model.fit(X, y, epochs=10 , validation_split=0.3)
-#     # TODO this works however the model sucks, find better architecture / loss functions etc.
-
-# Save the model
-#     model.save(cnn_model_path)
-
+# KNN_model(pathname)
+CNN_Model(pathname, 0)
 
 # if override_dataset: ANOTHER OLD MODEL
     #
