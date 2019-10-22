@@ -86,6 +86,8 @@ def detect(east_path, image, minConfidence, inputHeight, inputWidth):
     boxes = np.array(foxes)
 
     # loop over the bounding boxes
+    chars_final = []
+    words_final = []
     for (startX, startY, endX, endY) in boxes:
 
         print(startX, startY)
@@ -98,27 +100,30 @@ def detect(east_path, image, minConfidence, inputHeight, inputWidth):
         startY = int(startY * rH) - 5
         endX = int(endX * rW) + 5
         endY = int(endY * rH) + 5
-        # startX = int(startX * rW)
-        # startY = int(startY * rH)
-        # endX = int(endX * rW)
-        # endY = int(endY * rH)
         cv2.rectangle(image, (startX, startY), (endX, endY), (0, 255, 0), 2)
         word = image[startY:endY, startX:endX]
 
         chars, BB = CharDetector.detect_chars(image.astype('uint8'), word.astype('uint8'),[startX, startY, endX, endY])
         # char_boxes.append(chars)
-        processed_chars = []
         # for box in BB:
         #     cv2.rectangle(image,(startX + box[0],startY + box[2]), (startX + box[1], startY + box[3]), (255,0,0),1)
+        processed_chars = []
         for char in chars:
             resized = process_char(char)
             # print(resized.shape)
-            # processed_chars.append(resized)
+            processed_chars.append(resized)
+
+        chars_final.append(processed_chars)
+        charNum = len(processed_chars)
+        words_final.append([word,charNum])
 
 
-    cv2.imshow("meow",image)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
+    return [chars_final, words_final]
+
+
+    # cv2.imshow("meow",image)
+    # cv2.waitKey(0)
+    # cv2.destroyAllWindows()
 
 
 def process_char(char_orig):
@@ -126,60 +131,37 @@ def process_char(char_orig):
     resized = char_orig.copy()
     h, w = resized.shape[:2]
     # dim = (h,w)
-
     if h > 32:
 
         ratio = 32 / float(h)
-        dim = (32, int(w * ratio))
+        dim = ( int(w * ratio),32)
         resized = cv2.resize(resized, dim, interpolation = cv2.INTER_NEAREST)
         h, w = resized.shape[:2]
 
-        if w > 32:
+    if w > 32:
 
-            ratio = 32 / float(w)
-            dim = (int(h * ratio), 32)
-            resized = cv2.resize(resized, dim, interpolation = cv2.INTER_NEAREST)
+        ratio = 32 / float(w)
+        dim = (32, int(h * ratio))
+        resized = cv2.resize(resized, dim, interpolation = cv2.INTER_NEAREST)
 
     h, w = resized.shape[:2]
     pad_needed = 32 - h
     even = (pad_needed % 2 == 0)
     bottom_padding = pad_needed // 2
     top_padding = bottom_padding if even else bottom_padding + 1
+    print(top_padding,bottom_padding)
     resized = np.pad(resized,((top_padding,bottom_padding),(0,0),(0,0)),mode="constant",constant_values=255)
-
+    # h, w = resized.shape[:2]
     pad_needed = 32 - w
     even = (pad_needed % 2 == 0)
     left_padding = pad_needed // 2
     right_padding = left_padding if even else left_padding + 1
     resized = np.pad(resized,((0,0),(left_padding,right_padding),(0,0)),mode="constant",constant_values=255)
 
-    print(resized.shape)
+    # print(resized.shape)
     cv2.imshow("meow",resized)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
-
-# if h < 32:
-
-        # pad_needed = 32 - h
-        # even = (pad_needed % 2 == 0)
-        # bottom_padding = pad_needed // 2
-        # top_padding = bottom_padding if even else bottom_padding + 1
-        # np.pad(char,(top_padding,bottom_padding),mode="minimum")
-    #
-    # elif h > 32:
-    #     cv2.resize(char,dsize=(32,w),interpolation=cv2.INTER_NEAREST)
-    #
-    # if w < 32:
-    #     pad_needed = 32 - w
-    #     even = (pad_needed % 2 == 0)
-    #     left_padding = pad_needed // 2
-    #     right_padding = left_padding if even else left_padding + 1
-    #     np.pad(char,(left_padding,right_padding),mode="minimum")
-    #
-    # elif w > 32:
-    #     cv2.resize(char,dsize=(h,32),interpolation=cv2.INTER_NEAREST)
-    #
-    # return char
 
 
 
@@ -245,26 +227,35 @@ def decode(scores, geometry, minConfidence):
     return [rects, confidences]
 
 
-def main():
-    args = parse_arguments()
+# def main():
+#
+#     # load model
+#     model = load_model('pathname')
+#     # summarize model.
+#     model.summary()
+#
+#     #get number:
+#
+#     model.predict() # probably returns one hot encoded vector.
+#
+#     args = parse_arguments()
+#     im_path = args.image
+#     east_path = args.east
+#     minConfidence = args.min_confidence
+#     image, ratio, orig, w, h = load_and_resize_image(im_path)
+#     chars, words = detect(east_path, image, minConfidence, h, w)    #chars = 32x32 chars, words = [word_matrix, num_of_characters]
+#     # a = [[1,2],[3,4],[5,6]]
+#     # b = np.array(a)
+#     # print(b.shape)
+#     # print()
+#     # print(b)
+#     # print("padding:")
+#     # c = np.pad(b,((1,2),(1,2)),mode="constant",constant_values=0)
+#     # print(c)
+#
+#     return 0
 
-    im_path = args.image
-    east_path = args.east
-    minConfidence = args.min_confidence
-    image, ratio, orig, w, h = load_and_resize_image(im_path)
-    detect(east_path, image, minConfidence, h, w)
-    # a = [[1,2],[3,4],[5,6]]
-    # b = np.array(a)
-    # print(b.shape)
-    # print()
-    # print(b)
-    # print("padding:")
-    # c = np.pad(b,((1,2),(1,2)),mode="constant",constant_values=0)
-    # print(c)
-
-    return 0
-
-main()
+# main()
 
 # test_im = np.ones((100,100))
 # test_bb = [25,25,74,76]

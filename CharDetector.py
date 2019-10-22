@@ -37,7 +37,7 @@ def load_image(im_path):
 #               in TextDetector.py. For som reason when the kernel was created there it would not have any effect on
 #               preprocessing.
 
-def preprocess(im, BB):
+def preprocess(im, BB): #TODO fix dilation for smaller fonts. maybe try something other than that.
 
     #grayscale
     gray = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
