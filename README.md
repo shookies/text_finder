@@ -4,6 +4,7 @@ is to use our aquired skills from courses in order to create a simple chrome ext
 (Mainly PDF scans of text). 
 
 The code is mainly divided into 3 modules:
+
 -TextDetector.py: 
   Recieves input jpeg (or converts pdf file to jpg) and pre-processes it for detection. using the native OpenCV
   text detection CNN (EAST) the module detects words in the image and places bounding boxes around them in order
